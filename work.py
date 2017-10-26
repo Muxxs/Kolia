@@ -1,9 +1,4 @@
 #coding=utf-8
-'''
-Requirements:
-+ pyaudio - `pip install pyaudio`
-+ py-webrtcvad - `pip install webrtcvad`
-'''
 import webrtcvad
 import collections
 import sys
@@ -80,7 +75,6 @@ def playwma(filename):
 
 def say(words):
     from aip import AipSpeech
-    """ 你的 APPID AK SK """
     APP_ID = '8952809'
     API_KEY = ' fszBbd9xWKUqM9aZ6p5atNec'
     SECRET_KEY = '3b86c60023658c183e20621810427aa7'
@@ -91,9 +85,9 @@ def say(words):
     print result
     # 识别正确返回语音二进制 错误则返回dict 参照下面错误码
     if not isinstance(result, dict):
-        with open('auido.wav', 'wb') as f:
+        with open('auio.mp3', 'wb') as f:
             f.write(result)
-    playwma("audio.wav")
+
 def handle_int(sig, chunk):
     global leave, got_a_sentence
     leave = True
@@ -103,55 +97,17 @@ def get_file_content(filePath):
         return fp.read()
 
 def wav_to_text(wav_file):
-    import os
-    # 设置应用信息
-    baidu_server = "https://openapi.baidu.com/oauth/2.0/token?"
-    grant_type = "client_credentials"
-    client_id = " fszBbd9xWKUqM9aZ6p5atNec"  # 填写API Key
-    client_secret = "3b86c60023658c183e20621810427aa7"  # 填写Secret Key
+    from aip import AipSpeech
+    APP_ID = '8952809'
+    API_KEY = 'fszBbd9xWKUqM9aZ6p5atNec'
+    SECRET_KEY = '3b86c60023658c183e20621810427aa7'
+    aipSpeech = AipSpeech(APP_ID, API_KEY, SECRET_KEY)
+    res = aipSpeech.asr(get_file_content(wav_file), 'pcm', 16000, {
+        'lan': 'zh',
+    })
+    return res
 
-    # 合成请求token的URL
-    url = baidu_server + "grant_type=" + grant_type + "&client_id=" + client_id + "&client_secret=" + client_secret
 
-    # 获取token
-    res = urllib2.urlopen(url).read()
-    data = json.loads(res)
-    token = data["access_token"]
-    print token
-
-    # 设置音频属性，根据百度的要求，采样率必须为8000，压缩格式支持pcm（不压缩）、wav、opus、speex、amr
-    VOICE_RATE = 16000
-    WAVE_FILE = wav_file  # 音频文件的路径
-    USER_ID = "hail_hydra"  # 用于标识的ID，可以随意设置
-    WAVE_TYPE = "wav"
-
-    # 打开音频文件，并进行编码
-    f = open(WAVE_FILE, "r")
-    speech = base64.b64encode(f.read())
-    size = os.path.getsize(WAVE_FILE)
-    update = json.dumps(
-        {"format": WAVE_TYPE, "rate": VOICE_RATE, 'channel': 1, 'cuid': USER_ID, 'token': token, 'speech': speech,
-         'len': size})
-    headers = {'Content-Type': 'application/json'}
-    url = "http://vop.baidu.com/server_api"
-    req = urllib2.Request(url, update, headers)
-
-    r = urllib2.urlopen(req)
-
-    t = r.read()
-    result = json.loads(t)
-    print result
-    if result['err_msg'] == 'success.':
-        word = result['result'][0].encode('utf-8')
-        if word != '':
-            if word[len(word) - 3:len(word)] == '，':
-                print word[0:len(word) - 3]
-            else:
-                print word
-        else:
-            print "音频文件不存在或格式错误"
-    else:
-        print "错误"
 
 def record_to_file(path, data, sample_width):
     "Records from the microphone and outputs the resulting data to 'path'"
@@ -180,8 +136,14 @@ signal.signal(signal.SIGINT, handle_int)
 def read():
     print "read"
     say("你好")
-    wav_to_text("recording.wav")
-    print res
+    res=wav_to_text("recording.wav")
+    for (i,l) in res.items():
+        text=str(l).decode('unicode_escape')
+        if text.find("[")==-1 and text.find("]")==-1:
+            pass
+        else:
+            text=text.split("'")[1]
+            print text
     return "break"
 
 
