@@ -1,43 +1,50 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Mar 28 22:28:29 2016
-@author: zhanghc
-"""
-#引入模块
+#coding=utf-8
 import socket
-import threading
-import time
-#创建socket
-s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+import sys
+from thread import *
+from pub import get_config
+HOST = ''  # Symbolic name meaning all available interfaces
+PORT = int(get_config.get_porttext() ) # Arbitrary non-privileged port
 
-#监听端口
-s.bind(('127.0.0.1',9999))
-s.listen(5)
-print 'Waiting for connection...'
-def talk(text):
-    import jieba,os
-    import os
-    from bosonnlp import BosonNLP
-    nlp = BosonNLP(os.environ['nPom9h4a.18434.tEA4SsUlkG8g'])
-    print nlp.sentiment(' ')
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+print 'Socket created'
+
+# Bind socket to local host and port
+try:
+    s.bind((HOST, PORT))
+except socket.error, msg:
+    print 'Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1]
+    sys.exit()
+
+print 'Socket bind complete'
+
+# Start listening on socket
+s.listen(10)
+print 'Socket now listening'
 
 
-def tcplink(sock,addr):
-    print 'Accept new connection from %s:%s...' % addr
+# Function for handling connections. This will be used to create threads
+def clientthread(conn):
+    # Sending message to connected client
+    # infinite loop so that function do not terminate and thread do not end.
     while True:
-        data=sock.recv(1024)
-        time.sleep(1)
-        if data=='exit' or not data:
-            break
-        talk(data)
-    sock.close()
-    print 'Connection from %s:%s closed.'%addr
-
-
-while True:
-    # 接受一个新连接
-    sock, addr = s.accept()
-
-    # 创建新线程来处理TCP连接
-    t = threading.Thread(target=tcplink(sock, addr))
-
+        # Receiving from client
+        data = conn.recv(1024)
+        from plu_for_service import word2
+        mes=word2.twotowords(str(data))
+        message=mes.split("?/!")[0]
+        model=mes.split("?/!")[1]
+        from plu_for_service import kolia_text
+        ret= kolia_text.text(str(message).encode("utf-8"))
+        print ret
+        conn.send(ret)  # send only takes string
+    # came out of loop
+    conn.close()
+# now keep talking with the client
+while 1:
+    # wait to accept a connection - blocking call
+    conn, addr = s.accept()
+    print 'Connected with ' + addr[0] + ':' + str(addr[1])
+    # start new thread takes 1st argument as a function name to be run, second is the tuple of arguments to the function.
+    start_new_thread(clientthread, (conn,))
+s.close()
