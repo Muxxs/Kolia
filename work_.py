@@ -90,7 +90,9 @@ def say(words):
             f.write(result)
     playmp3("auio.mp3")
 
-
+def say_word(text):
+    import os
+    return os.system("say "+text)
 
 def handle_int(sig, chunk):
     global leave, got_a_sentence
@@ -147,10 +149,10 @@ def read():
         else:
             text=text.split("'")[1]
             print text
-            if text=="结束，":
-                return "break"
-            else:
-                return text
+            return text
+
+
+
 
 def recording():
     FORMAT = pyaudio.paInt16
@@ -164,9 +166,7 @@ def recording():
     # NUM_WINDOW_CHUNKS = int(240 / CHUNK_DURATION_MS)
     NUM_WINDOW_CHUNKS = int(400 / CHUNK_DURATION_MS)  # 400 ms/ 30ms  ge
     NUM_WINDOW_CHUNKS_END = NUM_WINDOW_CHUNKS * 2
-
     START_OFFSET = int(NUM_WINDOW_CHUNKS * CHUNK_DURATION_MS * 0.5 * RATE)
-
     vad = webrtcvad.Vad(1)
 
     pa = pyaudio.PyAudio()
@@ -254,7 +254,6 @@ def recording():
         leave=True
     stream.close()
     return 1
-
 left=False
 while not left:
     record=recording()
@@ -264,4 +263,7 @@ while not left:
     else:
         print res
         from plu import sendMessage
-        print sendMessage.sendMessage(res,"1")
+        if res==None:
+            pass
+        else:
+            print say_word(sendMessage.sendMessage(res,"1"))
